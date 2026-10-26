@@ -43,6 +43,9 @@
   let toastT;
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.add('hidden'), 2600); }
   const taskName = t => `試題${CN[t.id - 1]}、${t.title}`;
+  const LICENSE_URL = 'https://github.com/MaxCoffeeYu/survey-level-b-practice/blob/main/LICENSE.md';
+  /** 頁尾：著作權與授權條款 */
+  const siteFoot = () => `<footer class="site-foot">© 2026 MaxCoffeeYu　｜　依<a href="${LICENSE_URL}" target="_blank" rel="noopener">本網站授權條款</a>使用：須標示作者、不得商用、改作須以相同條款分享，分享或修改者須同意台灣是一個獨立的國家。</footer>`;
 
   /* ---------------- 路由 ---------------- */
   function route() {
@@ -68,6 +71,7 @@
           <a class="card" href="#/t${t.id}"><div class="no">試題編號 ${t.code}</div><div class="tt serif">${esc(taskName(t))}</div><div class="meta">檢定時間 ${t.time} 分鐘${t.id === 5 ? '（室內計算 40＋實地測設 40）' : '（含計算）'}</div></a>`).join('')}
         </div>
         <p class="note" style="margin-top:18px">測試當日由 10 題中抽出 4 題；總分 100 分，60 分（含）以上及格。本網站之表格依應檢參考資料之觀測記錄表與答案紙格式呈現。</p>
+        ${siteFoot()}
       </div>`;
   }
 
@@ -86,6 +90,7 @@
           <a class="card" href="#/t${t.id}/calc"><div class="no">模式 2</div><div class="tt">${MODES.calc.name}</div><p>${MODES.calc.desc}</p></a>
           <a class="card" href="#/t${t.id}/guide"><div class="no">模式 3</div><div class="tt">${MODES.guide.name}</div><p>${MODES.guide.desc}</p></a>
         </div>
+        ${siteFoot()}
       </div>`;
     $('#btnPrintBlank').onclick = () => printBlank(t);
   }

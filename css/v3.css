@@ -226,3 +226,6 @@ details.steps summary { padding: 8px 10px; cursor: pointer; font-weight: 700; }
 .pano-lcd .lcd-in { font-size: 17px; padding: 4px 10px; gap: 10px; }
 .pano-lcd-note { font-size: 11.5px; background: rgba(255,255,255,.85); border: 1px solid #555; border-top: 0; padding: 2px 6px; }
 @media (max-width: 760px) { .pano-lcd { top: auto; bottom: 112px; right: 8px; width: 74vw; } .pano-lcd .lcd-in { font-size: 14px; } .pano-lcd-note { display: none; } }
+/* 頁尾：著作權與授權 */
+.site-foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #bbb; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+.site-foot a { color: #1d4ed8; }
