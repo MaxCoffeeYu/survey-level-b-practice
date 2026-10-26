@@ -4,7 +4,7 @@
  * 流程（依應檢參考資料）：室內計算 40 分鐘（交卷後資料不得更改）
  *   → 實地測設 40 分鐘：於 S 點整置經緯儀、後視 F，測設 A 點與 P 點
  * 放樣步驟（依授課教師說明，以 A 點為例）：
- *   1. 儀器設定 φSF（HSET）並按 HOLD   2. 照準 F，解除 HOLD
+ *   1. 轉到讀數 φSF 並按 HOLD（3.1 版依 DT-200 實機，無 HSET）   2. 照準 F，解除 HOLD
  *   3. 轉動至讀數 φSA                    4. 小幫手持測針移至 SA 方位
  *   5. 小幫手蹲下                        6. 望遠鏡中指揮測針左右對準縱絲
  *   7. 測針固定                          8. 捲尺讀數端選定 SA 距離並固定於 S 點
@@ -16,8 +16,7 @@
   const A = () => G.APP3, FI = () => G.FIELD._, TH = () => G.FIELD_THEO;
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
-  const K = 0.4;                         // 望遠鏡：每角秒 0.4 px
-  const T_INDOOR = 40 * 60, T_FIELD = 40 * 60;
+    const T_INDOOR = 40 * 60, T_FIELD = 40 * 60;
 
   /* ---------------- 場地 ---------------- */
   function makeScene() {
@@ -32,7 +31,7 @@
     return {
       kind: 'stake', pts, stations: { S: { x: k.SE, y: k.SN, label: 'S 點（後視 F）' } },
       known: k, perfect: {}, override: {}, trueA: { x: sol.EA, y: sol.NA }, trueP: { x: sol.EP, y: sol.NP }, base,
-      hint: '於 S 點整置，HSET 輸入 φSF 並按 HOLD，照準 F 後解除 HOLD；轉至 φSA，請小幫手持測針就位、蹲下，以望遠鏡指揮左右對準縱絲後固定；再以捲尺讀數端在 S 點選定 SA，小幫手將測針移到捲尺零端打樁。P 點同法。'
+      hint: '於 S 點整置並按 POWER 開機；水平旋轉至讀數 φSF 後按 HOLD，照準 F 後再按 HOLD 解除；轉至 φSA，請小幫手持測針就位、蹲下，以望遠鏡指揮左右對準縱絲後固定；再以捲尺讀數端在 S 點選定 SA，小幫手將測針移到捲尺零端打樁。P 點同法。'
     };
   }
 
@@ -191,7 +190,8 @@
     syncPts(); A().saveDraft();
   }
 
-  /* ---------------- 望遠鏡（自由照準，含 HSET／HOLD） ---------------- */
+  /* ---------------- 望遠鏡（共用 DT-200 介面，見 theodolite.js；以 HOLD 設定 φSF） ---------------- */
+  const DT = () => G.DT;
   function dirTo(x, y, H) {
     const f = fs(), s0 = f.scene.stations.S;
     const d = Math.hypot(x - s0.x, y - s0.y);
@@ -201,132 +201,55 @@
     const f = fs(); if (!f.cur) return;
     if (id && f.scene.pts[id]) {
       const p = f.scene.pts[id], dd = dirTo(p.x, p.y, p.H);
-      f.point = { az: dd.az + S.pick([-1, 1]) * S.rand(150, 400) / 3600, Z: dd.Z + S.pick([-1, 1]) * S.rand(100, 300) / 3600 };
-    } else if (!f.point || Math.abs(S.wrap180(f.point.az - f.az)) > 20) f.point = { az: f.az, Z: 92 };
+      DT().aimRough(dd.az, dd.Z);
+    } else if (!f.point) f.point = { az: f.az, Z: 92 };
     if (f.cur.hold && f.cur.heldHR === undefined) f.cur.heldHR = 0;
-    renderScope();
-  }
-  function curHR() {
-    const c = fs().cur, az = fs().point.az;
-    return S.roundSec(c.face === 'L' ? S.norm360(az - c.ori + c.c / 3600) : S.norm360(az - c.ori + 180 - c.c / 3600));
-  }
-  function curV() { const c = fs().cur, Z = fs().point.Z; return S.roundSec(S.norm360(c.face === 'L' ? Z + c.i / 3600 : 360 - Z + c.i / 3600)); }
-  /** 轉動望遠鏡；HOLD 時度盤跟著轉，讀數不變 */
-  function turn(dAz, dZ) {
-    const f = fs(), c = f.cur;
-    f.point.az = S.norm360(f.point.az + dAz / 3600); f.point.Z += dZ / 3600;
-    if (c.hold) setHR(c.heldHR);
-    f.az = f.point.az;
-  }
-  function setHR(val) {
-    const f = fs(), c = f.cur, az = f.point.az;
-    c.ori = c.face === 'L' ? az + c.c / 3600 - val : az + 180 - c.c / 3600 - val;
-  }
-  function renderScope() {
-    const f = fs(), h = f.helper;
-    $('#ovl').innerHTML = `<div class="ovl scope-ovl"><div class="scope-wrap">
-      <div class="scope-h">經緯儀望遠鏡（S 點）　拖曳＝粗動，按鈕＝微動；大角度轉向請回全景轉動</div>
-      <div class="scope-c" id="scopeC"></div>
-      <div class="lcd" id="lcd"></div>
-      <div class="scope-b">
-        <span class="mv"><button class="btn" data-mv="-20,0">◀◀</button><button class="btn" data-mv="-1,0">◀</button><button class="btn" data-mv="1,0">▶</button><button class="btn" data-mv="20,0">▶▶</button></span>
-        <span class="mv"><button class="btn" data-mv="0,-20">▲▲</button><button class="btn" data-mv="0,-1">▲</button><button class="btn" data-mv="0,1">▼</button><button class="btn" data-mv="0,20">▼▼</button></span>
-      </div>
-      <div class="scope-b"><button class="btn" id="kHset">HSET 輸入水平角</button><button class="btn${f.cur.hold ? ' warn' : ''}" id="kHold">${f.cur.hold ? 'HOLD 中（按此解除）' : 'HOLD'}</button>
-        <button class="btn" id="kCard2">放樣資料</button><button class="btn primary" id="kBack">返回全景</button></div>
-      ${h ? `<div class="scope-b helper-cmd"><b style="color:#fff">指揮小幫手：</b>
+    const h = () => f.helper;
+    DT().openScope({
+      title: '經緯儀望遠鏡（S 點）　大角度轉向請回全景轉動',
+      items: scopeItems,
+      extra: () => h() ? `<div class="scope-b helper-cmd"><b style="color:#fff">指揮小幫手：</b>
         <button class="btn" data-hl="-0.1">← 10cm</button><button class="btn" data-hl="-0.01">← 1cm</button><button class="btn" data-hl="-0.002">← 2mm</button>
         <button class="btn" data-hl="0.002">2mm →</button><button class="btn" data-hl="0.01">1cm →</button><button class="btn" data-hl="0.1">10cm →</button>
-        <button class="btn" id="kCrouch">${h.crouch ? '請起立' : '請蹲下'}</button><button class="btn${h.fixed ? ' primary' : ''}" id="kFix">${h.fixed ? '已固定（拔起）' : '固定測針'}</button></div>` : ''}
-      <div class="note scope-note">「←／→」為從望遠鏡看出去的左右。測針未蹲穩時會晃動；蹲下並對準縱絲後再固定。</div>
-    </div></div>`;
-    draw();
-    const c = $('#scopeC'); let down = null;
-    c.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, az: f.point.az, Z: f.point.Z, held: f.cur.heldHR }; c.setPointerCapture(e.pointerId); });
-    c.addEventListener('pointermove', e => {
-      if (!down) return;
-      const k = 600 / c.getBoundingClientRect().width / K;
-      f.point.az = down.az; f.point.Z = down.Z;
-      turn(-(e.clientX - down.x) * k, -(e.clientY - down.y) * k);
-      draw();
+        <button class="btn" id="kCrouch">${h().crouch ? '請起立' : '請蹲下'}</button><button class="btn${h().fixed ? ' primary' : ''}" id="kFix">${h().fixed ? '已固定（拔起）' : '固定測針'}</button></div>` : '',
+      bindExtra: () => {
+        if (!h()) return;
+        const again = () => scope(null);
+        $$('[data-hl]').forEach(b => b.onclick = () => { if (h().fixed) return A().toast('測針已固定，請先拔起再移動'); moveHelper(Number(b.dataset.hl), 0); DT().draw(); });
+        $('#kCrouch').onclick = () => { h().crouch = !h().crouch; syncPts(); A().saveDraft(); again(); };
+        $('#kFix').onclick = () => {
+          if (!h().fixed && !h().crouch) return A().toast('請先請小幫手蹲下，測針扶穩後再固定');
+          h().fixed = !h().fixed; syncPts(); A().saveDraft(); again();
+          A().toast(h().fixed ? '測針已固定；接著用「捲尺放樣」量距' : '已拔起測針');
+        };
+      },
+      buttons: '<button class="btn" id="kCard2">放樣資料</button>',
+      bindButtons: () => { $('#kCard2').onclick = card; },
+      note: '設定方位：轉到讀數 φSF → HOLD → 照準 F → 再按 HOLD 解除 → 轉到 φSA。「←／→」為從望遠鏡看出去的左右；測針未蹲穩時會晃動。'
     });
-    c.addEventListener('pointerup', () => { down = null; A().saveDraft(); });
-    $$('[data-mv]').forEach(b => b.onclick = () => { const [dx, dy] = b.dataset.mv.split(',').map(Number); turn(dx, dy); draw(); A().saveDraft(); });
-    $('#kHset').onclick = () => {
-      const v = prompt('輸入水平角（度-分-秒，例 236-18-36）：');
-      if (v === null) return;
-      const p = S.parseDMS(v);
-      if (!p.ok) return A().toast('角度格式錯誤，請用 度-分-秒');
-      setHR(S.norm360(p.deg));
-      if (f.cur.hold) f.cur.heldHR = S.norm360(p.deg);
-      A().saveDraft(); draw(); A().toast(`水平角已設定為 ${S.fmtDMS(S.norm360(p.deg))}`);
-    };
-    $('#kHold').onclick = () => {
-      f.cur.hold = !f.cur.hold;
-      if (f.cur.hold) f.cur.heldHR = curHR(); else delete f.cur.heldHR;
-      A().saveDraft(); renderScope();
-    };
-    $('#kCard2').onclick = card;
-    $('#kBack').onclick = () => { FI().closeOverlays(); FI().drawPano(); FI().drawMini(); };
-    if (h) {
-      $$('[data-hl]').forEach(b => b.onclick = () => { if (h.fixed) return A().toast('測針已固定，請先拔起再移動'); moveHelper(Number(b.dataset.hl), 0); draw(); });
-      $('#kCrouch').onclick = () => { h.crouch = !h.crouch; syncPts(); A().saveDraft(); renderScope(); };
-      $('#kFix').onclick = () => {
-        if (!h.fixed && !h.crouch) return A().toast('請先請小幫手蹲下，測針扶穩後再固定');
-        h.fixed = !h.fixed; syncPts(); A().saveDraft(); renderScope();
-        A().toast(h.fixed ? '測針已固定；接著用「捲尺放樣」量距' : '已拔起測針');
-      };
-    }
   }
-  function draw() {
-    const f = fs(), sc = f.scene, P0 = f.point;
-    const X = (az) => 300 + S.wrap180(az - P0.az) * 3600 * K;
-    const Y = (Z) => 300 + (Z - P0.Z) * 3600 * K;
-    const yh = Y(90);
-    let g = `<defs><clipPath id="kc"><circle cx="300" cy="300" r="292"/></clipPath>
-      <radialGradient id="kv" cx="50%" cy="50%" r="50%"><stop offset="0.8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.5"/></radialGradient></defs>
-      <rect width="600" height="600" fill="#111"/><g clip-path="url(#kc)"><rect width="600" height="600" fill="#cfe1ef"/>
-      <rect y="${Math.min(620, Math.max(-20, yh))}" width="600" height="${Math.max(0, 640 - yh)}" fill="#a9c58b"/>`;
-    // 地面紋理（方便感受轉動）
-    for (let i = -6; i <= 6; i++) { const az = Math.round(P0.az * 60) / 60 + i / 60; const x = X(az); g += `<line x1="${x}" y1="${Math.max(yh, 0)}" x2="${x}" y2="600" stroke="#9cb97f" stroke-width="1"/>`; }
-    const items = [];
-    const F0 = sc.pts.F; items.push({ ...dirTo(F0.x, F0.y, F0.H), kind: 'F' });
-    if (f.helper) items.push({ ...dirTo(f.helper.x, f.helper.y, sc.base), kind: 'pin', h: f.helper });
-    for (const p of ['A', 'P']) if (f.placed[p]) items.push({ ...dirTo(f.placed[p].x, f.placed[p].y, sc.base + 0.1), kind: 'stake', label: p });
-    const edge = [];
-    for (const it of items) {
-      const x = X(it.az), y = Y(it.Z), m = v => v / it.d * S.RHO * K;
-      // 視野外：在邊緣以箭頭提示方向
-      if (x < 15 || x > 585 || y < 15 || y > 585) { if (Math.abs(S.wrap180(it.az - P0.az)) < 20) edge.push({ x, y, label: it.kind === 'F' ? 'F 覘標' : it.kind === 'pin' ? '測針' : it.label + ' 樁' }); }
-      if (x < -400 || x > 1000) continue;
-      if (it.kind === 'F') {
-        const tw = m(0.08), th = m(0.07);
-        g += `<rect x="${x - m(0.018)}" y="${y + m(0.006)}" width="${m(0.036)}" height="${m(0.3)}" fill="#c8a165" stroke="#6b4f2a"/>
-          <line x1="${x}" y1="${y - th}" x2="${x}" y2="${y - th - m(1.2)}" stroke="#666" stroke-width="${Math.max(2, m(0.02))}"/>
-          <path d="M${x - tw / 2} ${y - th} L${x} ${y - th} L${x} ${y} Z" fill="#d32f2f"/><path d="M${x} ${y - th} L${x + tw / 2} ${y - th} L${x} ${y} Z" fill="#fff" stroke="#d32f2f"/>`;
-      } else if (it.kind === 'pin') {
+  /** 望遠鏡中可見的物件：F 點覘標、小幫手的測針、已打的樁 */
+  function scopeItems() {
+    const f = fs(), sc = f.scene, out = [];
+    const F0 = sc.pts.F;
+    out.push({ ...dirTo(F0.x, F0.y, F0.H), label: 'F 覘標', svg: (x, y, m) => {
+      const tw = m(0.08), th = m(0.07);
+      return `<rect x="${x - m(0.018)}" y="${y + m(0.006)}" width="${m(0.036)}" height="${m(0.3)}" fill="#c8a165" stroke="#6b4f2a"/>
+        <line x1="${x}" y1="${y - th}" x2="${x}" y2="${y - th - m(1.2)}" stroke="#666" stroke-width="${Math.max(2, m(0.02))}"/>
+        <path d="M${x - tw / 2} ${y - th} L${x} ${y - th} L${x} ${y} Z" fill="#d32f2f"/><path d="M${x} ${y - th} L${x + tw / 2} ${y - th} L${x} ${y} Z" fill="#fff" stroke="#d32f2f"/>`;
+    } });
+    if (f.helper) {
+      const hh = f.helper;
+      out.push({ ...dirTo(hh.x, hh.y, sc.base), label: '測針', svg: (x, y, m) => {
         // 未固定且未蹲下時測針晃動
-        const sway = it.h.fixed ? 0 : (it.h.crouch ? S.rand(-0.0015, 0.0015) : S.rand(-0.02, 0.02));
+        const sway = hh.fixed ? 0 : (hh.crouch ? S.rand(-0.0015, 0.0015) : S.rand(-0.02, 0.02));
         const xs = x + m(sway);
-        if (!it.h.fixed) g += `<path d="M${xs + m(0.06)} ${y - m(0.25)} q ${m(0.1)} ${m(0.02)} ${m(0.25)} ${m(0.1)}" stroke="#f2c9a0" stroke-width="${m(0.05)}" fill="none" stroke-linecap="round"/>`;
-        g += pinSVG(xs, y, m(0.012), m(0.32));
-      } else {
-        g += `<rect x="${x - m(0.02)}" y="${y - m(0.12)}" width="${m(0.04)}" height="${m(0.3)}" fill="#c8a165" stroke="#6b4f2a"/><text x="${x + m(0.04)}" y="${y - m(0.14)}" font-size="16" fill="#333">${it.label}</text>`;
-      }
+        return (hh.fixed ? '' : `<path d="M${xs + m(0.06)} ${y - m(0.25)} q ${m(0.1)} ${m(0.02)} ${m(0.25)} ${m(0.1)}" stroke="#f2c9a0" stroke-width="${m(0.05)}" fill="none" stroke-linecap="round"/>`) + pinSVG(xs, y, m(0.012), m(0.32));
+      } });
     }
-    g += `<circle cx="300" cy="300" r="300" fill="url(#kv)"/></g>
-      <g stroke="#111" stroke-width="1.2"><line x1="300" y1="8" x2="300" y2="592"/><line x1="8" y1="300" x2="592" y2="300"/><line x1="294" y1="8" x2="294" y2="220"/><line x1="306" y1="8" x2="306" y2="220"/></g>`;
-    for (const e of edge) {
-      const a = Math.atan2(e.y - 300, e.x - 300), ex = 300 + 255 * Math.cos(a), ey = 300 + 255 * Math.sin(a);
-      g += `<g transform="translate(${ex},${ey}) rotate(${a * S.R2D})"><path d="M14 0 L-6 -10 L-6 10 Z" fill="#ffd400" stroke="#111"/></g>
-        <text x="${ex - 22 * Math.cos(a)}" y="${ey - 22 * Math.sin(a) + 5}" text-anchor="middle" font-size="15" font-weight="700" fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke">${e.label}</text>`;
-    }
-    g += `
-      <circle cx="300" cy="300" r="292" fill="none" stroke="#000" stroke-width="10"/>`;
-    $('#scopeC').innerHTML = `<svg viewBox="0 0 600 600" width="100%" height="100%">${g}</svg>`;
-    const c = f.cur;
-    $('#lcd').innerHTML = `<div class="lcd-in"><span class="lcd-face">${c.hold ? 'HOLD' : (c.face === 'L' ? '正鏡' : '倒鏡')}</span>
-      <div><b>V</b>　${S.fmtDMS(curV())}</div><div><b>HR</b>　${S.fmtDMS(c.hold ? c.heldHR : curHR())}</div></div>`;
+    for (const p of ['A', 'P']) if (f.placed[p]) out.push({ ...dirTo(f.placed[p].x, f.placed[p].y, sc.base + 0.1), label: p + ' 樁', svg: (x, y, m) =>
+      `<rect x="${x - m(0.02)}" y="${y - m(0.12)}" width="${m(0.04)}" height="${m(0.3)}" fill="#c8a165" stroke="#6b4f2a"/><text x="${x + m(0.04)}" y="${y - m(0.14)}" font-size="16" fill="#333">${p}</text>` });
+    return out;
   }
 
   /* ---------------- 捲尺放樣 ---------------- */
@@ -386,5 +309,5 @@
     };
   }
 
-  G.FIELD_STAKE = { enter, forceEnd, finish, buttons, bind, card, panoTarget, scope, makeScene, _: { moveHelper, setHR, turn, curHR, syncPts, dirTo } };
+  G.FIELD_STAKE = { enter, forceEnd, finish, buttons, bind, card, panoTarget, scope, makeScene, _: { moveHelper, setHR: v => G.DT.setHR(v), turn: (a, z) => G.DT.turn(a, z), curHR: () => G.DT.curHR(), syncPts, dirTo } };
 })(window);

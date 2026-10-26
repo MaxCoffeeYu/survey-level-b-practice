@@ -229,3 +229,43 @@ details.steps summary { padding: 8px 10px; cursor: pointer; font-weight: 700; }
 /* 頁尾：著作權與授權 */
 .site-foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #bbb; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
 .site-foot a { color: #1d4ed8; }
+
+/* ---------- 3.1：共用電子經緯儀面板（仿 Topcon DT-200） ---------- */
+.scope-box { position: relative; }
+.dt-face { position: absolute; right: -6px; top: 6px; display: flex; flex-direction: column; align-items: center; line-height: 1.25; padding: 6px 10px; }
+.dt-face small { font-size: 11px; color: #555; font-weight: 400; }
+.scope-ovl .scope-wrap { width: min(720px, 100%); }
+.dt { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; width: 100%; }
+.dt-knob { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #eee; font-size: 12px; }
+.dt-knob b { font-weight: 600; }
+.dt-knob .kn { width: 40px; height: 40px; border-radius: 50%; background: repeating-conic-gradient(#555 0 8deg, #2a2a2a 8deg 16deg); border: 3px solid #111; box-shadow: 0 0 0 2px #777; }
+.dt-knob .mv { display: flex; gap: 3px; }
+.dt-knob .mv .btn { padding: 5px 9px; }
+.dt-v .mv { display: grid; grid-template-columns: repeat(2, auto); }
+.dt-panel { background: #ecebe4; border: 2px solid #333; border-radius: 10px; padding: 9px 11px; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 0 #222; }
+.dt-lcd { width: 216px; background: #b9c7a5; border: 3px solid #333; border-radius: 4px; padding: 4px 8px; font: 700 19px ui-monospace, 'Consolas', monospace; color: #111; box-shadow: inset 0 0 8px rgba(0,0,0,.25); }
+.dt-lcd.off { background: #8e987f; }
+.dt-row { display: flex; align-items: baseline; gap: 6px; height: 26px; }
+.dt-row i { font-style: normal; font-size: 13px; width: 28px; color: #222; }
+.dt-row span { flex: 1; text-align: right; white-space: nowrap; }
+.dt-row em { font-style: normal; font-size: 12px; width: 12px; color: #222; }
+.dt-row.blink span { animation: dtblink 1s steps(1) infinite; }
+@keyframes dtblink { 50% { opacity: .15; } }
+.dt-keys { display: grid; grid-template-columns: repeat(2, 58px); gap: 6px; }
+.dt-key { border: 2px solid #333; border-radius: 12px; background: #fff; font: 700 12px Arial, sans-serif; padding: 5px 0; cursor: pointer; color: #111; }
+.dt-key:active { background: #ddd; transform: translateY(1px); }
+.dt-key.pw { border-radius: 14px; border-width: 3px; }
+.pw-ic { display: inline-block; vertical-align: middle; }
+.pano-lcd .dt-lcd { width: auto; font-size: 17px; padding: 3px 8px; }
+.pano-lcd .dt-row { height: 22px; }
+@media (max-width: 760px) {
+  .scope-ovl { background: rgba(0,0,0,.94); }
+  .dt { gap: 8px 18px; }
+  .dt-panel { order: -1; }
+  .dt-lcd { width: 176px; font-size: 15px; }
+  .dt-keys { grid-template-columns: repeat(2, 50px); gap: 5px; }
+  .dt-knob .mv .btn { padding: 4px 7px; font-size: 12px; }
+  .dt-knob .kn { width: 28px; height: 28px; }
+  .dt-face { right: 0; padding: 4px 6px; font-size: 12px; }
+  .pano-lcd .dt-lcd { font-size: 14px; }
+}
